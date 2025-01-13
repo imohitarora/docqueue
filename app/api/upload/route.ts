@@ -3,6 +3,7 @@ import { mkdir, writeFile } from "fs/promises";
 import { join } from "path";
 import { prisma } from "@/lib/db";
 import { documentQueue } from "@/lib/queue";
+import { redis } from "@/lib/redis";
 
 export async function POST(req: Request) {
   try {
@@ -66,6 +67,15 @@ export async function POST(req: Request) {
           status: "pending",
         },
       });
+
+      await redis.publish(
+        "document-updates",
+        JSON.stringify({
+          documentId: document.id,
+          status: "pending",
+        })
+      );
+      await new Promise((resolve) => setTimeout(resolve, 5000));
     } catch (error) {
       if (error instanceof Error) {
         console.log("Error: ", error.stack);

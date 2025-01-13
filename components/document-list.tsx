@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Search } from "lucide-react";
 import { format } from "date-fns";
 import { Input } from "@/components/ui/input";
@@ -27,36 +27,58 @@ export function DocumentList() {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [search, setSearch] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const eventSourceRef = useRef<EventSource | null>(null);
 
-  const fetchDocuments = async () => {
-    try {
-      setIsLoading(true); // Start loading spinner
+  useEffect(() => {
+    const setupSSE = () => {
+      // Close existing connection if any
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+      }
 
-      // Validate and prepare query parameters
       const params = new URLSearchParams();
       if (search?.trim()) params.append("q", search.trim());
 
-      // Fetch data from the API
-      const response = await fetch(`/api/documents?${params}`);
-      if (!response.ok) throw new Error("Failed to fetch documents");
+      const eventSource = new EventSource(`/api/documents?${params}`);
+      eventSourceRef.current = eventSource;
 
-      // Parse and set the data
-      const data = await response.json();
-      setDocuments(data || []); // Fallback to an empty array if `data` is null
-    } catch (error) {
-      console.error("Fetch error:", error);
-      // Optionally display an error message to the user
-    } finally {
-      setIsLoading(false); // Stop loading spinner
-    }
-  };
+      eventSource.onmessage = (event) => {
+        const data = JSON.parse(event.data);
 
-  useEffect(() => {
-    fetchDocuments();
+        if (data.type === "initial") {
+          setDocuments(data.documents);
+          setIsLoading(false);
+        } else if (data.type === "update") {
+          setDocuments((prev) => {
+            const index = prev.findIndex((doc) => doc.id === data.document.id);
+            if (index === -1) {
+              // New document
+              return [data.document, ...prev];
+            } else {
+              // Update existing document
+              const newDocs = [...prev];
+              newDocs[index] = data.document;
+              return newDocs;
+            }
+          });
+        }
+      };
 
-    // Poll for updates every 5 seconds
-    const interval = setInterval(fetchDocuments, 30000);
-    return () => clearInterval(interval);
+      eventSource.onerror = (error) => {
+        console.error("SSE Error:", error);
+        eventSource.close();
+        // Optionally implement reconnection logic here
+      };
+    };
+
+    setupSSE();
+
+    // Cleanup
+    return () => {
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+      }
+    };
   }, [search]);
 
   return (
