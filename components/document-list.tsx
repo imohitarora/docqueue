@@ -13,6 +13,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { ContentDialog } from "./content-dialog";
+import { Button } from "./ui/button";
 
 interface Document {
   id: string;
@@ -28,6 +30,7 @@ export function DocumentList() {
   const [search, setSearch] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const eventSourceRef = useRef<EventSource | null>(null);
+  const [selectedContent, setSelectedContent] = useState<string | null>(null);
 
   useEffect(() => {
     const setupSSE = () => {
@@ -82,74 +85,91 @@ export function DocumentList() {
   }, [search]);
 
   return (
-    <Card className="p-6">
-      <div className="flex items-center gap-4 mb-6">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search documents..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
+    <>
+      <Card className="p-6">
+        <div className="flex items-center gap-4 mb-6">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search documents..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9"
+            />
+          </div>
         </div>
-      </div>
 
-      <div className="relative">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Upload Date</TableHead>
-              <TableHead>Content Preview</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {documents.map((doc) => (
-              <TableRow key={doc.id}>
-                <TableCell>{doc.originalName}</TableCell>
-                <TableCell>
-                  <span
-                    className={`
-                      inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                      ${
-                        doc.status === "completed"
-                          ? "bg-green-100 text-green-800"
-                          : doc.status === "failed"
-                          ? "bg-red-100 text-red-800"
-                          : doc.status === "processing"
-                          ? "bg-blue-100 text-blue-800"
-                          : "bg-gray-100 text-gray-800"
-                      }
-                    `}
-                  >
-                    {doc.status}
-                  </span>
-                </TableCell>
-                <TableCell>{format(new Date(doc.createdAt), "PPp")}</TableCell>
-                <TableCell className="max-w-md truncate">
-                  {doc.status === "completed"
-                    ? doc.content?.slice(0, 100) + "..."
-                    : doc.status === "failed"
-                    ? doc.error
-                    : "-"}
-                </TableCell>
-              </TableRow>
-            ))}
-            {!isLoading && documents.length === 0 && (
+        <div className="relative">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell
-                  colSpan={4}
-                  className="h-24 text-center text-muted-foreground"
-                >
-                  No documents found
-                </TableCell>
+                <TableHead>Name</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Upload Date</TableHead>
+                <TableHead>Content Preview</TableHead>
               </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
-    </Card>
+            </TableHeader>
+            <TableBody>
+              {documents.map((doc) => (
+                <TableRow key={doc.id}>
+                  <TableCell>{doc.originalName}</TableCell>
+                  <TableCell>
+                    <span
+                      className={`
+                        inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                        ${
+                          doc.status === "completed"
+                            ? "bg-green-100 text-green-800"
+                            : doc.status === "failed"
+                            ? "bg-red-100 text-red-800"
+                            : doc.status === "processing"
+                            ? "bg-blue-100 text-blue-800"
+                            : "bg-gray-100 text-gray-800"
+                        }
+                      `}
+                    >
+                      {doc.status}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    {format(new Date(doc.createdAt), "PPp")}
+                  </TableCell>
+                  <TableCell className="max-w-md truncate">
+                    {doc.status === "completed" ? (
+                      <Button
+                        variant="link"
+                        onClick={() => setSelectedContent(doc.content || "")}
+                      >
+                        {doc.content?.slice(0, 100) + "..."}
+                      </Button>
+                    ) : doc.status === "failed" ? (
+                      doc.error
+                    ) : (
+                      "-"
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+              {!isLoading && documents.length === 0 && (
+                <TableRow>
+                  <TableCell
+                    colSpan={4}
+                    className="h-24 text-center text-muted-foreground"
+                  >
+                    No documents found
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </Card>
+
+      <ContentDialog
+        isOpen={!!selectedContent}
+        onClose={() => setSelectedContent(null)}
+        content={selectedContent || ""}
+      />
+    </>
   );
 }
