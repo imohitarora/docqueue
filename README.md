@@ -1,8 +1,43 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# DocQueue - PDF Processing System
+
+A Next.js application for processing and managing PDF documents with real-time status updates.
+
+## Features
+
+- **PDF Document Processing**: Upload and process PDF documents
+- **Real-time Status Updates**: Track document processing status via Server-Sent Events (SSE)
+- **Search Functionality**: Search through processed documents
+- **Document Management**: View and manage uploaded documents
+- **Content Preview**: Preview processed document content
+
+## System Architecture
+
+This project uses the following technology stack:
+
+- **Frontend**: Next.js 15+ with TypeScript and TailwindCSS
+- **Database**: PostgreSQL with Prisma ORM
+- **Queue System**: BullMQ for processing PDFs
+- **Caching**: Redis for queue management and caching
+- **Real-time Updates**: Server-Sent Events (SSE) for live status updates
 
 ## Getting Started
 
-First, run the development server:
+1. Clone the repository
+
+2. Install dependencies:
+
+```bash
+npm install
+```
+
+3. Set up environment variables:
+
+```bash
+Copy .env.example to .env
+Configure your database and Redis connection strings
+```
+
+4. Run the development server:
 
 ```bash
 npm run dev
